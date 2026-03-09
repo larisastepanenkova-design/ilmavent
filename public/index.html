@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ilmavent — Дашборд заявок</title>
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>📊</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <!-- Шапка -->
+  <header class="header">
+    <div class="header-left">
+      <h1 class="logo">ILMA<span>VENT</span></h1>
+      <div class="header-subtitle">Дашборд заявок</div>
+    </div>
+    <div class="header-right">
+      <div class="stat-box">
+        <div class="stat-number" id="stat-total">0</div>
+        <div class="stat-label">Сегодня</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number" id="stat-taken">0</div>
+        <div class="stat-label">В работе</div>
+      </div>
+      <div class="stat-box stat-box--warning">
+        <div class="stat-number" id="stat-new">0</div>
+        <div class="stat-label">Ожидают</div>
+      </div>
+      <div class="clock" id="clock">00:00:00</div>
+    </div>
+  </header>
+
+  <!-- Сетка карточек -->
+  <main class="grid" id="leads-grid">
+    <!-- Карточки генерируются через JS -->
+  </main>
+
+  <!-- Пустое состояние -->
+  <div class="empty-state" id="empty-state" style="display:none;">
+    <div class="empty-icon">✅</div>
+    <div class="empty-text">Нет активных заявок</div>
+    <div class="empty-sub">Все заявки обработаны</div>
+  </div>
+
+  <!-- Нижняя строка -->
+  <footer class="footer">
+    <span>Обновление каждые 30 сек</span>
+    <span id="last-update">—</span>
+  </footer>
+
+  <script src="dashboard.js"></script>
+</body>
+
+</html>
