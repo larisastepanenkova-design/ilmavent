@@ -86,13 +86,37 @@ function parsePopupForm(body) {
  * Автоопределение типа формы по полям
  */
 function autoDetectAndParse(body) {
+    // Если источник задан явно (через отдельный эндпоинт) — используем его
+    if (body._source) {
+        const sourceOverride = body._source;
+        delete body._source; // убираем служебное поле
+
+        // Парсим данные формы по автоопределению полей
+        let parsed;
+        if (body['Для_какого_помещения_нужна_вентиляция'] || body['Что_вас_беспокоит_больше_всего']) {
+            parsed = parseQuiz2Form(body);
+        } else if (body['На_каком_объекте_планируете_монтаж']) {
+            parsed = parseQuiz1Form(body);
+        } else if (body['Общая_площадь_м2'] || body.kitchen || body.potolok) {
+            parsed = parseSiteForm(body);
+        } else {
+            parsed = parsePopupForm(body);
+        }
+
+        // Принудительно ставим источник из эндпоинта
+        parsed.source = sourceOverride;
+        console.log(`📌 Источник задан явно: ${sourceOverride}`);
+        return parsed;
+    }
+
+    // Автоопределение по полям формы
     // Квиз /5questions — есть поле про помещение
     if (body['Для_какого_помещения_нужна_вентиляция'] || body['Что_вас_беспокоит_больше_всего']) {
         return parseQuiz2Form(body);
     }
 
-    // Квиз /02 — есть поле про объект монтажа
-    if (body['На_каком_объекте_планируете_монтаж'] && body['Какие_системы_хотите_сделать']) {
+    // Квиз /02 — есть поле про объект монтажа (убрали AND, достаточно одного поля)
+    if (body['На_каком_объекте_планируете_монтаж'] || body['Какие_системы_хотите_сделать']) {
         return parseQuiz1Form(body);
     }
 

@@ -38,12 +38,12 @@ const { createLead, findByPhone, markDuplicate, getLeadById } = require('./db/le
 const { isNightMode } = require('./managers/restrictions');
 const { startBot, publishLead, publishNightLeads } = require('./bot/telegram');
 
-// Универсальный вебхук (принимает любой тип формы)
-app.post('/webhook/lead', async (req, res) => {
+// Общая логика обработки заявки (используется всеми эндпоинтами)
+async function handleLeadWebhook(req, res) {
     try {
         console.log('📩 Новая заявка:', JSON.stringify(req.body).substring(0, 200));
 
-        // Парсим заявку
+        // Парсим заявку (autoDetectAndParse учитывает _source если задан)
         const parsed = autoDetectAndParse(req.body);
 
         // Проверка на дубль по телефону
@@ -53,8 +53,6 @@ app.post('/webhook/lead', async (req, res) => {
                 console.log(`⚠️ Дубль: ${parsed.client_phone} → менеджер ${existing.manager_name}`);
                 const leadId = createLead(parsed);
                 markDuplicate(leadId, existing.manager_name);
-
-                // TODO: отправить в Telegram «Дубль. Ответственный: ...»
                 return res.json({ status: 'duplicate', manager: existing.manager_name });
             }
         }
@@ -72,22 +70,25 @@ app.post('/webhook/lead', async (req, res) => {
         console.error('❌ Ошибка приёма заявки:', error);
         res.status(500).json({ error: error.message });
     }
-});
+}
 
-// Отдельные эндпоинты (алиасы для разных форм)
+// Универсальный вебхук (принимает любой тип формы)
+app.post('/webhook/lead', handleLeadWebhook);
+
+// Отдельные эндпоинты для разных форм (задают источник явно)
 app.post('/webhook/site', (req, res) => {
     req.body._source = 'site';
-    app.handle(req, res);
+    handleLeadWebhook(req, res);
 });
 
 app.post('/webhook/quiz1', (req, res) => {
     req.body._source = 'quiz1';
-    app.handle(req, res);
+    handleLeadWebhook(req, res);
 });
 
 app.post('/webhook/quiz2', (req, res) => {
     req.body._source = 'quiz2';
-    app.handle(req, res);
+    handleLeadWebhook(req, res);
 });
 
 // --- Таймеры ---
