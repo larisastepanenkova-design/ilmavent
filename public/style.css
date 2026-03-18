@@ -133,6 +133,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 20px;
+  min-height: 160px;
   position: relative;
   overflow: hidden;
   transition: transform 0.2s, box-shadow 0.2s;
@@ -235,6 +236,9 @@ body {
   gap: 6px;
   font-size: 13px;
   color: var(--text-muted);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .card-manager-icon {
@@ -261,6 +265,8 @@ body {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--green);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* ===== EMPTY STATE ===== */
