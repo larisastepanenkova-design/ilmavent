@@ -76,7 +76,6 @@ function createCard(lead) {
         <span class="card-id">#${lead.id}</span>
         <span class="card-source">${sourceLabel}</span>
       </div>
-      <div class="card-phone">${lead.client_phone || '—'}</div>
       <div class="card-name">${lead.client_name || 'Без имени'}</div>
       <div class="card-footer">
         ${isNew
