@@ -76,6 +76,8 @@ function registerAdminCommands(bot) {
             [Markup.button.callback('👥 Менеджеры', 'admin_managers')],
             [Markup.button.callback('📊 Статистика', 'admin_stats')],
             [Markup.button.callback('➕ Добавить менеджера', 'admin_add')],
+            [Markup.button.callback('🧹 Очистить обработанные', 'admin_clear_taken')],
+            [Markup.button.callback('🗑 Очистить всё', 'admin_clear_all')],
         ];
 
         // Только суперадмин видит управление админами
@@ -387,6 +389,8 @@ function registerAdminCommands(bot) {
             [Markup.button.callback('👥 Менеджеры', 'admin_managers')],
             [Markup.button.callback('📊 Статистика', 'admin_stats')],
             [Markup.button.callback('➕ Добавить менеджера', 'admin_add')],
+            [Markup.button.callback('🧹 Очистить обработанные', 'admin_clear_taken')],
+            [Markup.button.callback('🗑 Очистить всё', 'admin_clear_all')],
         ];
         if (isSuperAdmin(ctx)) {
             buttons.push([Markup.button.callback('🔑 Под-админы', 'admin_subadmins')]);
@@ -443,6 +447,64 @@ function registerAdminCommands(bot) {
         const report = generateReport('Месяц', 30);
         await sendReport(report);
         ctx.answerCbQuery('📊 Отчёт отправлен в группу!');
+    });
+
+    // Очистить обработанные (только taken)
+    bot.action('admin_clear_taken', (ctx) => {
+        const db = getDb();
+        const count = db.prepare("SELECT COUNT(*) as c FROM leads WHERE status = 'taken'").get();
+
+        if (count.c === 0) {
+            return ctx.answerCbQuery('✅ Нет обработанных заявок для очистки');
+        }
+
+        db.prepare("UPDATE leads SET status = 'done' WHERE status = 'taken'").run();
+        ctx.answerCbQuery(`🧹 Очищено: ${count.c} заявок`);
+        ctx.editMessageText(`🧹 *Дашборд очищен*\n\nАрхивировано обработанных заявок: ${count.c}\nНезабранные заявки остались на дашборде.`, {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard([
+                [Markup.button.callback('◀️ Назад', 'admin_back')],
+            ]),
+        });
+    });
+
+    // Очистить всё — подтверждение
+    bot.action('admin_clear_all', (ctx) => {
+        const db = getDb();
+        const newCount = db.prepare("SELECT COUNT(*) as c FROM leads WHERE status = 'new'").get();
+        const takenCount = db.prepare("SELECT COUNT(*) as c FROM leads WHERE status = 'taken'").get();
+        const total = newCount.c + takenCount.c;
+
+        if (total === 0) {
+            return ctx.answerCbQuery('✅ Дашборд уже пуст');
+        }
+
+        let warning = `⚠️ *Очистить ВСЁ?*\n\nБудет архивировано: ${total} заявок`;
+        if (newCount.c > 0) {
+            warning += `\n\n🔴 *Внимание:* ${newCount.c} незабранных заявок исчезнут с дашборда!`;
+        }
+
+        ctx.editMessageText(warning, {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard([
+                [Markup.button.callback('🗑 Да, очистить всё', 'admin_clear_all_confirm')],
+                [Markup.button.callback('◀️ Отмена', 'admin_back')],
+            ]),
+        });
+    });
+
+    // Очистить всё — выполнение
+    bot.action('admin_clear_all_confirm', (ctx) => {
+        const db = getDb();
+        const result = db.prepare("UPDATE leads SET status = 'done' WHERE status IN ('new', 'taken')").run();
+
+        ctx.answerCbQuery(`🗑 Очищено: ${result.changes} заявок`);
+        ctx.editMessageText(`🗑 *Дашборд полностью очищен*\n\nАрхивировано заявок: ${result.changes}`, {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard([
+                [Markup.button.callback('◀️ Назад', 'admin_back')],
+            ]),
+        });
     });
 
     console.log('⚙️ Админ-панель подключена');

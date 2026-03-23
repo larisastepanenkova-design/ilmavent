@@ -180,6 +180,19 @@ function getNightLeads() {
   `).all();
 }
 
+/**
+ * Получить взятые заявки с привязкой к Битриксу (для проверки статуса)
+ */
+function getTakenLeadsWithBitrix() {
+  const db = getDb();
+  return db.prepare(`
+    SELECT id, bitrix_task_id
+    FROM leads
+    WHERE status = 'taken'
+    AND bitrix_task_id IS NOT NULL
+  `).all();
+}
+
 module.exports = {
   createLead,
   takeLead,
@@ -193,4 +206,5 @@ module.exports = {
   getLeadById,
   getLeadStats,
   getNightLeads,
+  getTakenLeadsWithBitrix,
 };

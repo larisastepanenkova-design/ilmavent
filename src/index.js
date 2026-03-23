@@ -94,13 +94,21 @@ app.post('/webhook/quiz2', (req, res) => {
 // --- Таймеры ---
 const cron = require('node-cron');
 const { checkColors } = require('./timers/color-checker');
+const { checkBitrixActivities } = require('./timers/bitrix-checker');
 
 // Проверка цветов каждые 30 секунд
 setInterval(() => {
     checkColors();
 }, config.dashboard.refreshInterval);
 
-console.log('⏱️ Таймеры запущены (проверка цветов каждые 30 сек)');
+// Проверка статуса активностей в Битриксе каждые 30 сек
+setInterval(() => {
+    checkBitrixActivities().catch(err =>
+        console.error('❌ Проверка Битрикса:', err.message)
+    );
+}, config.dashboard.refreshInterval);
+
+console.log('⏱️ Таймеры запущены (цвета + проверка Битрикса каждые 30 сек)');
 
 // Утренняя рассылка ночных заявок в 06:00
 cron.schedule('0 6 * * *', () => {

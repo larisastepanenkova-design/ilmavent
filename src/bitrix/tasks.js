@@ -106,4 +106,19 @@ function getMoscowTime(addHours = 0) {
     return `${moscow.getFullYear()}-${pad(moscow.getMonth() + 1)}-${pad(moscow.getDate())}T${pad(moscow.getHours())}:${pad(moscow.getMinutes())}:${pad(moscow.getSeconds())}+03:00`;
 }
 
-module.exports = { createContactActivity, FIELD_LABELS };
+/**
+ * Проверить, выполнена ли CRM-активность в Битриксе
+ * @returns {boolean} true если активность закрыта (COMPLETED === 'Y')
+ */
+async function checkActivityCompleted(activityId) {
+    try {
+        const result = await callBitrix('crm.activity.get', { id: activityId });
+        return result.result && result.result.COMPLETED === 'Y';
+    } catch (error) {
+        // Не ломаем систему при ошибке — просто пропускаем эту проверку
+        console.error(`⚠️ Не удалось проверить активность ${activityId}:`, error.message);
+        return false;
+    }
+}
+
+module.exports = { createContactActivity, checkActivityCompleted, FIELD_LABELS };
