@@ -217,6 +217,16 @@ async function notifyManager(managerId, text) {
 async function processBitrixIntegration(lead, manager) {
     if (!config.bitrix.webhookUrl) return;
 
+    // Проверяем наличие bitrix_user_id — без него сделка уйдёт на администратора
+    const bitrixUserId = manager.bitrix_user_id;
+    if (!bitrixUserId) {
+        console.error(`⚠️ У менеджера ${manager.name} (ID=${manager.id}) не задан bitrix_user_id! Сделка будет назначена на администратора.`);
+        await notifyManager(manager.id,
+            `⚠️ <b>Внимание!</b>\nВаш аккаунт не привязан к Битрикс24.\nСделка будет назначена на администратора. Обратитесь к руководителю.`
+        );
+    }
+    const assigneeId = bitrixUserId || 1;
+
     // 1. Проверяем дубли в Bitrix24
     if (lead.client_phone) {
         const duplicate = await findContactByPhone(lead.client_phone);
@@ -234,7 +244,7 @@ async function processBitrixIntegration(lead, manager) {
         name: lead.client_name,
         phone: lead.client_phone,
         email: lead.client_email,
-        managerId: manager.bitrix_user_id || 1,
+        managerId: assigneeId,
     });
 
     // 3. Формируем комментарий из данных заявки
@@ -266,7 +276,7 @@ async function processBitrixIntegration(lead, manager) {
         contactId,
         title: `Заявка #${lead.id} — ${lead.client_name || lead.client_phone}`,
         source: lead.source,
-        managerId: manager.bitrix_user_id || 1,
+        managerId: assigneeId,
         comment,
     });
 
@@ -312,7 +322,7 @@ async function processBitrixIntegration(lead, manager) {
         contactId,
         contactName: lead.client_name,
         phone: lead.client_phone,
-        managerId: manager.bitrix_user_id || 1,
+        managerId: assigneeId,
         leadData: {
             source: lead.source,
             formData: lead.form_data,
