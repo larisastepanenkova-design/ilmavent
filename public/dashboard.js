@@ -33,7 +33,7 @@ const sourceLabels = {
 
 // ===== Форматирование таймера =====
 function formatTimer(createdAt) {
-    const created = new Date(createdAt);
+    const created = new Date(createdAt + 'Z'); // сервер хранит UTC, явно указываем
     const now = new Date();
     const diffMs = now - created;
     const diffMin = Math.floor(diffMs / 60000);
@@ -50,7 +50,7 @@ function formatTimer(createdAt) {
 function getColor(lead) {
     if (lead.status === 'new') return 'new'; // ещё не взята
 
-    const takenAt = new Date(lead.taken_at);
+    const takenAt = new Date(lead.taken_at + 'Z'); // сервер хранит UTC
     const now = new Date();
     const diffMin = (now - takenAt) / 60000;
 
