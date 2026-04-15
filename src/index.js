@@ -37,8 +37,12 @@ const { autoDetectAndParse } = require('./leads/collector');
 const { createLead, findByPhone, markDuplicate, getLeadById } = require('./db/leads');
 const { isNightMode } = require('./managers/restrictions');
 const { startBot, publishLead, publishNightLeads } = require('./bot/telegram');
+const { enqueue, getLeadQueueStatus } = require('./queue/lead-queue');
+const { getQueueStatus: getBitrixQueueStatus } = require('./bitrix/api');
 
 // Общая логика обработки заявки (используется всеми эндпоинтами)
+// Вебхук сохраняет заявку в БД сразу (быстрый ответ Тильде),
+// а тяжёлая обработка (Telegram, проверка дублей) идёт через очередь.
 async function handleLeadWebhook(req, res) {
     try {
         console.log('📩 Новая заявка:', JSON.stringify(req.body).substring(0, 200));
@@ -46,7 +50,7 @@ async function handleLeadWebhook(req, res) {
         // Парсим заявку (autoDetectAndParse учитывает _source если задан)
         const parsed = autoDetectAndParse(req.body);
 
-        // Проверка на дубль по телефону
+        // Проверка на дубль по телефону (быстрая, по локальной БД)
         if (parsed.client_phone) {
             const existing = findByPhone(parsed.client_phone);
             if (existing) {
@@ -57,13 +61,15 @@ async function handleLeadWebhook(req, res) {
             }
         }
 
-        // Создаём заявку в БД
+        // Создаём заявку в БД (мгновенно)
         const leadId = createLead(parsed);
         console.log(`✅ Заявка #${leadId} создана (${parsed.source})`);
 
-        // Публикуем в Telegram
-        const lead = getLeadById(leadId);
-        publishLead(lead).catch(err => console.error('❌ Telegram:', err.message));
+        // Публикацию в Telegram ставим в очередь (защита от залпа)
+        enqueue(async () => {
+            const lead = getLeadById(leadId);
+            await publishLead(lead);
+        });
 
         res.json({ status: 'ok', leadId });
     } catch (error) {
@@ -71,6 +77,16 @@ async function handleLeadWebhook(req, res) {
         res.status(500).json({ error: error.message });
     }
 }
+
+// --- Эндпоинт здоровья системы ---
+app.get('/api/status', (req, res) => {
+    res.json({
+        status: 'ok',
+        uptime: Math.floor(process.uptime()),
+        leadQueue: getLeadQueueStatus(),
+        bitrixQueue: getBitrixQueueStatus(),
+    });
+});
 
 // Универсальный вебхук (принимает любой тип формы)
 app.post('/webhook/lead', handleLeadWebhook);
