@@ -61,11 +61,22 @@ function handleRedZone(managerId, leadId) {
 }
 
 /**
+ * Получить текущий час по московскому времени (UTC+3)
+ */
+function getMoscowHour() {
+    const now = new Date();
+    const moscowOffset = 3 * 60; // +3 часа в минутах
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const moscow = new Date(utc + (moscowOffset * 60000));
+    return moscow.getHours();
+}
+
+/**
  * Проверка ночного режима
- * Заявки с 00:00 до 06:00 не показываются менеджерам
+ * Заявки с 21:00 до 06:00 MSK не показываются менеджерам
  */
 function isNightMode() {
-    const hour = new Date().getHours();
+    const hour = getMoscowHour();
     const start = config.nightMode.start;
     const end = config.nightMode.end;
 
