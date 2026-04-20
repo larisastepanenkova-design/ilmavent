@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const config = require('../config');
 const { getDb } = require('../db/database');
 const { getAllManagers } = require('../db/managers');
+const { withTelegramRetry } = require('../bot/retry');
 
 let botInstance = null;
 
@@ -113,10 +114,12 @@ async function sendReport(text) {
     }
 
     try {
-        await botInstance.telegram.sendMessage(
-            config.telegram.channelId,
-            text,
-            { parse_mode: 'HTML' }
+        await withTelegramRetry('sendReport', () =>
+            botInstance.telegram.sendMessage(
+                config.telegram.channelId,
+                text,
+                { parse_mode: 'HTML' }
+            )
         );
         console.log('📊 Отчёт отправлен в Telegram');
     } catch (err) {

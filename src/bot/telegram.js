@@ -8,6 +8,7 @@ const { createDeal } = require('../bitrix/deals');
 const { createContactActivity } = require('../bitrix/tasks');
 const { updateBitrixIds } = require('../db/leads');
 const { logEvent } = require('../db/history');
+const { withTelegramRetry } = require('./retry');
 
 let bot;
 
@@ -177,15 +178,17 @@ async function publishLead(lead) {
     ].filter(Boolean).join('\n');
 
     try {
-        const msg = await bot.telegram.sendMessage(
-            config.telegram.channelId,
-            text,
-            {
-                parse_mode: 'HTML',
-                ...Markup.inlineKeyboard([
-                    Markup.button.callback('📋 Взять заявку', `take_lead_${lead.id}`),
-                ]),
-            }
+        const msg = await withTelegramRetry(`publishLead#${lead.id}`, () =>
+            bot.telegram.sendMessage(
+                config.telegram.channelId,
+                text,
+                {
+                    parse_mode: 'HTML',
+                    ...Markup.inlineKeyboard([
+                        Markup.button.callback('📋 Взять заявку', `take_lead_${lead.id}`),
+                    ]),
+                }
+            )
         );
 
         updateTelegramMessageId(lead.id, msg.message_id);
@@ -205,7 +208,9 @@ async function notifyManager(managerId, text) {
     if (!manager || !manager.telegram_id) return;
 
     try {
-        await bot.telegram.sendMessage(manager.telegram_id, text, { parse_mode: 'HTML' });
+        await withTelegramRetry(`notifyManager:${manager.name}`, () =>
+            bot.telegram.sendMessage(manager.telegram_id, text, { parse_mode: 'HTML' })
+        );
     } catch (err) {
         console.error(`❌ Ошибка уведомления менеджеру ${manager.name}:`, err.message);
     }
